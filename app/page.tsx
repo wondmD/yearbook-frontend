@@ -18,6 +18,8 @@ import { FloatingCode } from "@/components/floating-code"
 import { TypingAnimation } from "@/components/typing-animation"
 import { GroupPhotos } from "@/components/group-photos"
 import { CodeDecorations } from "@/components/code-decorations"
+import { toast } from "sonner"
+import { getApiUrl } from "@/lib/api"
 
 export default function HomePage() {
   const [currentPage, setCurrentPage] = useState("home")
@@ -25,12 +27,44 @@ export default function HomePage() {
   const [authAction, setAuthAction] = useState("")
   const { data: session } = useSession()
 
-  const handleAddContent = (action: string) => {
+  const handleAddContent = async (action: string) => {
     if (!session) {
       setAuthAction(action)
       setShowAuthModal(true)
-    } else {
-      console.log(`Adding ${action} for user:`, session.user?.name)
+      return;
+    }
+
+    try {
+      // Fetch the user's profile to check approval status
+      const response = await fetch(getApiUrl('profiles/me/'), {
+        headers: {
+          'Authorization': `Bearer ${session.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+
+      const profile = await response.json();
+      
+      if (!profile.is_approved) {
+        // Show a toast notification that the user needs to wait for approval
+        toast.error('Your profile is pending approval. Please wait for an admin to approve your account before adding content.');
+        return;
+      }
+
+      // If we get here, the user is approved and can add content
+      console.log(`Adding ${action} for user:`, session.user?.name);
+      
+      // Here you would typically open a modal or navigate to the content creation page
+      // For now, we'll just log it
+      toast.success(`You can now ${action}`);
+      
+    } catch (error) {
+      console.error('Error checking profile status:', error);
+      toast.error('An error occurred while checking your profile status');
     }
   }
 

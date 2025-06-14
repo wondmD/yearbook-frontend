@@ -10,7 +10,23 @@ interface EventsPageProps {
   onAddEvent: () => void
 }
 
-const events = [
+interface Event {
+  id: number;
+  title: string;
+  date: string;
+  location: string;
+  description: string;
+  fullDescription: string;
+  attendees: number;
+  photos: number;
+  highlights: string[];
+  image: string;
+  gallery: string[];
+  is_approved: boolean;
+  created_by?: string;
+}
+
+const events: Event[] = [
   {
     id: 1,
     title: "50 Day Celebration",
@@ -30,6 +46,8 @@ const events = [
       "/placeholder.svg?height=300&width=400",
       "/placeholder.svg?height=300&width=400",
     ],
+    is_approved: true,
+    created_by: "admin"
   },
   {
     id: 2,
@@ -50,6 +68,8 @@ const events = [
       "/placeholder.svg?height=300&width=400",
       "/placeholder.svg?height=300&width=400",
     ],
+    is_approved: false,
+    created_by: "student1"
   },
   // Add more events...
 ]
@@ -76,7 +96,14 @@ export function EventsPage({ onAddEvent }: EventsPageProps) {
               <Image src={event.image || "/placeholder.svg"} alt={event.title} fill className="object-cover" />
               <div className="absolute inset-0 bg-black/40"></div>
               <div className="absolute bottom-6 left-6 text-white">
-                <h1 className="text-4xl font-bold mb-2">{event.title}</h1>
+                <div className="flex items-center gap-4">
+                  <h1 className="text-4xl font-bold mb-2">{event.title}</h1>
+                  {!event.is_approved && (
+                    <span className="bg-yellow-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                      Pending Approval
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center space-x-4 text-lg">
                   <div className="flex items-center">
                     <Calendar className="h-5 w-5 mr-2" />
@@ -196,7 +223,12 @@ export function EventsPage({ onAddEvent }: EventsPageProps) {
                 />
               </div>
 
-              <CardHeader>
+              <CardHeader className="relative">
+                {!event.is_approved && (
+                  <div className="absolute -top-3 -right-3 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-md z-10">
+                    Pending Approval
+                  </div>
+                )}
                 <CardTitle className="text-2xl text-gray-900 group-hover:text-blue-600 transition-colors">
                   {event.title}
                 </CardTitle>

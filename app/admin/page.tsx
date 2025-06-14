@@ -1,9 +1,10 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, FileText, AlertCircle } from "lucide-react"
+import { Users, FileText, User as UserIcon, AlertCircle } from "lucide-react"
 import { UserApprovalTab } from "./components/user-approval-tab"
 import { ContentApprovalTab } from "./components/content-approval-tab"
+import { ProfileApprovalTab } from "./components/profile-approval-tab"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -62,11 +63,15 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md mb-8">
+      <Tabs defaultValue="users" className="w-full max-w-6xl mx-auto p-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             User Approvals
+          </TabsTrigger>
+          <TabsTrigger value="profiles" className="flex items-center gap-2">
+            <UserIcon className="h-4 w-4" />
+            Profile Approvals
           </TabsTrigger>
           <TabsTrigger value="content" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -74,11 +79,15 @@ export default function AdminDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users" className="space-y-4">
+        <TabsContent value="users" className="mt-6">
           <UserApprovalTab />
         </TabsContent>
 
-        <TabsContent value="content" className="space-y-4">
+        <TabsContent value="profiles" className="mt-6">
+          <ProfileApprovalTab />
+        </TabsContent>
+
+        <TabsContent value="content" className="mt-6">
           <ContentApprovalTab />
         </TabsContent>
       </Tabs>
