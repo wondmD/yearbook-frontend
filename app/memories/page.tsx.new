@@ -1,0 +1,417 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { Plus, Heart, MessageSquare } from "lucide-react"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
+
+type Memory = {
+  id: number
+  title: string
+  description: string
+  image_url?: string
+  created_by: {
+    id: number
+    username: string
+    avatar?: string
+  }
+  created_at: string
+  likes_count: number
+  has_liked: boolean
+}
+
+const MemoryCard = ({ 
+  memory, 
+  onLike 
+}: { 
+  memory: Memory; 
+  onLike: (id: number) => void 
+}) => {
+  const formattedDate = new Date(memory.created_at).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return (
+    <Card className="overflow-hidden transition-all hover:shadow-lg">
+      {memory.image_url && (
+        <div className="relative h-48 w-full">
+          <Image
+            src={memory.image_url}
+            alt={memory.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </div>
+      )}
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">{memory.title}</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onLike(memory.id)}
+            className={`flex items-center space-x-1 ${memory.has_liked ? 'text-red-500' : ''}`}
+          >
+            <Heart
+              size={16}
+              className={memory.has_liked ? 'fill-current' : ''}
+            />
+            <span>{memory.likes_count}</span>
+          </Button>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+          <Avatar className="h-6 w-6">
+            <AvatarImage src={memory.created_by.avatar} />
+            <AvatarFallback>{memory.created_by.username[0]}</AvatarFallback>
+          </Avatar>
+          <span>{memory.created_by.username}</span>
+          <span>•</span>
+          <span>{formattedDate}</span>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{memory.description}</p>
+      </CardContent>
+    </Card>
+  );
+};
+
+const MemorySkeleton = () => (
+  <Card className="overflow-hidden">
+    <Skeleton className="h-48 w-full" />
+    <CardHeader>
+      <Skeleton className="h-6 w-3/4" />
+      <Skeleton className="mt-2 h-4 w-1/2" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="mt-2 h-4 w-5/6" />
+      <Skeleton className="mt-2 h-4 w-2/3" />
+    </CardContent>
+  </Card>
+);
+
+const AddMemoryDialog = ({ 
+  open, 
+  onOpenChange, 
+  onSubmit 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: { title: string; description: string; image: File | null }) => void;
+}) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({ title, description, image });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Share a Memory</DialogTitle>
+          <DialogDescription>
+            Share a funny moment, coding disaster, or any memory from your journey.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="title" className="block text-sm font-medium">
+              Title
+            </label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="What's the memory about?"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="description" className="block text-sm font-medium">
+              Description
+            </label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Tell us the story..."
+              rows={4}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Add a photo (optional)
+            </label>
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
+                />
+              </div>
+              {previewUrl && (
+                <div className="relative h-16 w-16 rounded-md overflow-hidden">
+                  <Image
+                    src={previewUrl}
+                    alt="Preview"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="submit">
+              <Plus className="mr-2 h-4 w-4" />
+              Share Memory
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default function MemoriesPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const funnyCategories = [
+    { id: 'all', label: 'All Memories', emoji: '📚' },
+    { id: 'funny', label: 'Funny Moments', emoji: '😂' },
+    { id: 'coding', label: 'Coding Disasters', emoji: '💻' },
+    { id: 'food', label: 'Food Adventures', emoji: '🍕' },
+    { id: 'random', label: 'Random Shenanigans', emoji: '🎭' },
+    { id: 'my-memories', label: 'My Memories', emoji: '🌟' },
+  ];
+
+  useEffect(() => {
+    const fetchMemories = async () => {
+      try {
+        setIsLoading(true);
+        let url = '/api/memories/memories/';
+        if (activeTab === 'my-memories' && session) {
+          url = '/api/memories/memories/my_memories/';
+        }
+        const res = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok) {
+          throw new Error('Failed to fetch memories');
+        }
+        const data = await res.json();
+        setMemories(data);
+      } catch (error) {
+        console.error('Error fetching memories:', error);
+        toast.error('Failed to load memories. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMemories();
+  }, [activeTab, session]);
+
+  const handleLike = async (memoryId: number) => {
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/memories/memories/${memoryId}/like/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to like memory');
+      }
+      
+      const updatedMemory = await res.json();
+      
+      setMemories(memories.map(memory => 
+        memory.id === memoryId 
+          ? { 
+              ...memory, 
+              has_liked: updatedMemory.liked, 
+              likes_count: updatedMemory.likes_count 
+            } 
+          : memory
+      ));
+    } catch (error) {
+      console.error('Error liking memory:', error);
+      toast.error('Failed to like memory. Please try again.');
+    }
+  };
+
+  const handleSubmitMemory = async (data: { 
+    title: string; 
+    description: string; 
+    image: File | null 
+  }) => {
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      if (data.image) {
+        formData.append('image', data.image);
+      }
+
+      const res = await fetch('/api/memories/memories/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to create memory');
+      }
+
+      const newMemory = await res.json();
+      setMemories([newMemory, ...memories]);
+      setIsDialogOpen(false);
+      toast.success('Memory shared successfully!');
+    } catch (error) {
+      console.error('Error creating memory:', error);
+      toast.error('Failed to share memory. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4">
+          Class Memories
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          Relive the best moments from our journey together. Share your favorite memories and like others' posts!
+        </p>
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+            {funnyCategories.map((category) => (
+              <TabsTrigger 
+                key={category.id} 
+                value={category.id}
+                className="flex items-center gap-1"
+              >
+                <span>{category.emoji}</span>
+                <span className="hidden sm:inline">{category.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="ml-4">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Memory
+            </Button>
+          </DialogTrigger>
+          <AddMemoryDialog 
+            open={isDialogOpen} 
+            onOpenChange={setIsDialogOpen}
+            onSubmit={handleSubmitMemory}
+          />
+        </Dialog>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <MemorySkeleton key={i} />
+          ))}
+        </div>
+      ) : memories.length === 0 ? (
+        <div className="text-center py-12">
+          <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-lg font-medium">No memories yet</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Be the first to share a memory from our journey together!
+          </p>
+          <Button className="mt-4" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Share a Memory
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {memories.map((memory) => (
+            <MemoryCard 
+              key={memory.id} 
+              memory={memory} 
+              onLike={handleLike} 
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

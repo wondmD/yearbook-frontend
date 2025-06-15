@@ -52,9 +52,9 @@ export function PendingEvents() {
     try {
       setUpdating(prev => ({ ...prev, [eventId]: true }));
       
-      await authPatch(getAdminApiUrl(`pending-events/${eventId}`), { action: 'approve' });
+      await authPatch(getAdminApiUrl(`events/${eventId}/approve`), {});
       toast.success('Event approved successfully');
-      setEvents(events.filter(event => event.id !== eventId));
+      setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (error) {
       console.error('Error approving event:', error);
       toast.error('Failed to approve event');
@@ -71,9 +71,9 @@ export function PendingEvents() {
     try {
       setUpdating(prev => ({ ...prev, [eventId]: true }));
       
-      await authPatch(getAdminApiUrl(`pending-events/${eventId}`), { action: 'reject' });
-      toast.success('Event rejected and deleted');
-      setEvents(events.filter(event => event.id !== eventId));
+      await authPatch(getAdminApiUrl(`events/${eventId}/reject`), {});
+      toast.success('Event rejected successfully');
+      setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (error) {
       console.error('Error rejecting event:', error);
       toast.error('Failed to reject event');

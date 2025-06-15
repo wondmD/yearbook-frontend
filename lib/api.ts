@@ -53,22 +53,112 @@ export async function authPatch(url: string, data: any) {
 
 /**
  * Get the full API URL for a given endpoint
- * @param endpoint API endpoint (e.g., 'users/unapproved/')
- * @returns Full URL string
+ * @param endpoint API endpoint (e.g., 'memories' or 'memories/1/like')
+ * @returns Full URL string with proper formatting
  */
-export function getApiUrl(endpoint: string): string {
-  // Remove leading/trailing slashes to avoid double slashes
-  const cleanEndpoint = endpoint.replace(/^\/+|\/+$/g, '');
-  return `${API_BASE_URL}/api/auth/${cleanEndpoint}/`;
+export function getApiUrl(endpoint: string = ''): string {
+  // Remove any leading/trailing slashes
+  let cleanEndpoint = endpoint.replace(/^\/+|\/+$/g, '');
+  
+  // Special handling for memory-related endpoints
+  if (cleanEndpoint === '' || 
+      cleanEndpoint === 'memories' || 
+      cleanEndpoint.startsWith('memories/') ||
+      cleanEndpoint === 'my_memories' ||
+      cleanEndpoint.startsWith('my_memories/')) {
+    
+    // Handle base memories endpoint
+    if (cleanEndpoint === '' || cleanEndpoint === 'memories') {
+      return `${API_BASE_URL}/api/memories/`;
+    }
+    
+    // Handle my_memories endpoint
+    if (cleanEndpoint === 'my_memories' || cleanEndpoint.startsWith('my_memories/')) {
+      const rest = cleanEndpoint.replace('my_memories', '').replace(/^\/+/, '');
+      return `${API_BASE_URL}/api/memories/my_memories/${rest ? rest + '/' : ''}`;
+    }
+    
+    // Handle like endpoint
+    if (cleanEndpoint.endsWith('/like') || cleanEndpoint.endsWith('/like/')) {
+      const memoryId = cleanEndpoint.split('/')[0];
+      return `${API_BASE_URL}/api/memories/${memoryId}/like/`;
+    }
+    
+    // Handle other memory endpoints
+    return `${API_BASE_URL}/api/memories/${cleanEndpoint.replace('memories/', '')}`;
+  }
+  
+  // Handle admin endpoints
+  if (cleanEndpoint.startsWith('admin/')) {
+    const adminPath = cleanEndpoint.replace('admin/', '');
+    return `${API_BASE_URL}/api/admin/${adminPath}`;
+  }
+  
+  // Default case - prepend with /api/ and ensure proper slashes
+  const normalizedEndpoint = cleanEndpoint ? `/${cleanEndpoint}/` : '/';
+  return `${API_BASE_URL}/api${normalizedEndpoint}`;
 }
 
 /**
  * Get the full API URL for admin endpoints
- * @param endpoint Admin API endpoint (e.g., 'pending-photos')
- * @returns Full URL string
+ * @param endpoint Admin API endpoint (e.g., 'pending-photos', 'pending-events', 'pending-memories')
+ * @returns Full URL string with trailing slash
  */
 export function getAdminApiUrl(endpoint: string): string {
-  // Remove leading/trailing slashes to avoid double slashes
-  const cleanEndpoint = endpoint.replace(/^\/+|\/+$/g, '');
-  return `${API_BASE_URL}/api/events/admin/${cleanEndpoint}/`;
+  // Remove any leading slashes but preserve trailing slash
+  let cleanEndpoint = endpoint.replace(/^\/+/g, '');
+  
+  // Ensure the endpoint doesn't end with a slash (we'll add it later)
+  cleanEndpoint = cleanEndpoint.replace(/\/$/, '');
+  
+  // Handle pending events
+  if (cleanEndpoint.startsWith('pending-events')) {
+    return getApiUrl(`events/admin/pending-events/`);
+  }
+  
+  // Handle pending photos
+  if (cleanEndpoint.startsWith('pending-photos')) {
+    return getApiUrl(`events/admin/pending-photos/`);
+  }
+  
+  // Handle pending memories list
+  if (cleanEndpoint === 'pending-memories') {
+    return getApiUrl('memories/admin/pending-memories/');
+  }
+  
+  // Handle specific memory actions (approve/reject)
+  if (cleanEndpoint.startsWith('pending-memories/')) {
+    const parts = cleanEndpoint.split('/');
+    if (parts.length > 1 && parts[1]) {
+      // Handle specific memory (e.g., pending-memories/1/)
+      return getApiUrl(`memories/admin/pending-memories/${parts[1]}/`);
+    }
+  }
+  
+  // Handle manage event (approve/reject)
+  if (cleanEndpoint.includes('events/') && (cleanEndpoint.includes('/approve') || cleanEndpoint.includes('/reject'))) {
+    const parts = cleanEndpoint.split('/');
+    const eventId = parts[0];
+    const action = parts[2]; // 'approve' or 'reject'
+    return getApiUrl(`events/admin/pending-events/${eventId}/`);
+  }
+  
+  // Handle manage photo (approve/reject)
+  if (cleanEndpoint.includes('photos/') && (cleanEndpoint.includes('/approve') || cleanEndpoint.includes('/reject'))) {
+    const parts = cleanEndpoint.split('/');
+    const photoId = parts[0];
+    const action = parts[2]; // 'approve' or 'reject'
+    return getApiUrl(`events/admin/pending-photos/${photoId}/`);
+  }
+  
+  // Handle manage memory (approve/reject)
+  if (cleanEndpoint.includes('memories/') && (cleanEndpoint.includes('/approve') || cleanEndpoint.includes('/reject'))) {
+    const parts = cleanEndpoint.split('/');
+    const memoryId = parts[0];
+    const action = parts[2]; // 'approve' or 'reject'
+    return getApiUrl(`memories/admin/pending-memories/${memoryId}/`);
+  }
+  
+  // For any other admin endpoints, assume they're under /api/admin/
+  return getApiUrl(`admin/${cleanEndpoint}/`);
 }

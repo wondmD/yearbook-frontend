@@ -53,10 +53,10 @@ export function PendingPhotos() {
     try {
       setUpdating(prev => ({ ...prev, [photoId]: true }));
       
-      await authPatch(getAdminApiUrl(`pending-photos/${photoId}`), { action: 'approve' });
+      await authPatch(getAdminApiUrl(`photos/${photoId}/approve`), {});
       
       toast.success('Photo approved successfully');
-      setPhotos(photos.filter(photo => photo.id !== photoId));
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch (error) {
       console.error('Error approving photo:', error);
       toast.error('Failed to approve photo');
@@ -73,10 +73,10 @@ export function PendingPhotos() {
     try {
       setUpdating(prev => ({ ...prev, [photoId]: true }));
       
-      await authPatch(getAdminApiUrl(`pending-photos/${photoId}`), { action: 'reject' });
+      await authPatch(getAdminApiUrl(`photos/${photoId}/reject`), {});
       
-      toast.success('Photo rejected and deleted');
-      setPhotos(photos.filter(photo => photo.id !== photoId));
+      toast.success('Photo rejected successfully');
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch (error) {
       console.error('Error rejecting photo:', error);
       toast.error('Failed to reject photo');

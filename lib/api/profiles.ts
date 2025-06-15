@@ -57,10 +57,12 @@ export interface Profile {
 export const fetchProfiles = async (searchQuery = ''): Promise<Profile[]> => {
   try {
     const session = await getSession();
-    const url = new URL(getApiUrl('profiles/'));
+    // Use the correct endpoint path with 'auth' prefix
+    const baseUrl = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000');
+    baseUrl.pathname = '/api/auth/profiles/';
     
     if (searchQuery) {
-      url.searchParams.append('search', searchQuery);
+      baseUrl.searchParams.append('search', searchQuery);
     }
 
     // Prepare headers - include auth token if available, but don't require it
@@ -73,7 +75,7 @@ export const fetchProfiles = async (searchQuery = ''): Promise<Profile[]> => {
       headers['Authorization'] = `Bearer ${session.accessToken}`;
     }
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(baseUrl.toString(), {
       headers,
     });
 

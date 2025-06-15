@@ -156,74 +156,35 @@ export const uploadEventPhoto = async (eventId: number, file: File, caption?: st
     throw new Error(error.detail || 'Failed to upload photo');
   }
 };
-
 export const fetchEventPhotos = async (eventId: number): Promise<EventPhoto[]> => {
   try {
     const session = await getSession();
     const url = `${API_BASE_URL}/api/events/events/${eventId}/photos/`;
-    console.log(`[fetchEventPhotos] Fetching event photos from: ${url}`);
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-    
+
     if (session?.accessToken) {
       headers['Authorization'] = `Bearer ${session.accessToken}`;
-      console.log('[fetchEventPhotos] Added auth token to headers');
-    } else {
-      console.warn('[fetchEventPhotos] No auth token available');
     }
-    
-    console.log('[fetchEventPhotos] Sending request with headers:', headers);
-    const response = await fetch(url, { headers });
-    console.log('[fetchEventPhotos] Received response, status:', response.status);
+
+    const response = await fetch(url, {
+      headers,
+      credentials: 'include',
+      cache: 'no-store',
+    });
 
     if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        errorData = { error: 'Failed to parse error response' };
-      }
-      
-      console.error('[fetchEventPhotos] Error response:', {
-        status: response.status,
-        statusText: response.statusText,
-        url,
-        error: errorData,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
-      
-      console.warn('[fetchEventPhotos] Returning empty photos array due to error');
+      const error = await response.json().catch(() => ({}));
+      console.error('Error fetching photos:', error);
       return [];
     }
 
-    let data;
-    try {
-      data = await response.json();
-      console.log('[fetchEventPhotos] Response data:', data);
-    } catch (e) {
-      console.error('[fetchEventPhotos] Failed to parse response as JSON:', e);
-      return [];
-    }
-    
-    // Ensure we always return an array, even if the response is not in the expected format
-    const photos = Array.isArray(data) ? data : [];
-    console.log(`[fetchEventPhotos] Fetched ${photos.length} photos for event ${eventId}`);
-    
-    // Log the first photo's structure if available
-    if (photos.length > 0) {
-      console.log('[fetchEventPhotos] First photo structure:', JSON.stringify(photos[0], null, 2));
-      if (photos[0].image_url) {
-        console.log('[fetchEventPhotos] First photo URL:', photos[0].image_url);
-      } else {
-        console.warn('[fetchEventPhotos] First photo is missing image_url');
-      }
-    }
-    
-    return photos;
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error('Error in fetchEventPhotos:', error);
-    throw error;
+    console.error('Network error:', error);
+    return [];
   }
 };

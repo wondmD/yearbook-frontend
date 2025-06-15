@@ -290,9 +290,9 @@ function EventsPage() {
                   </div>
                 </div>
 
-                <Button asChild className="w-full rounded-t-none">
-                  <Link href={`/gallery?event=${event.id}`} className="w-full">
-                    View Event Photos
+                <Button asChild variant="outline" className="w-full rounded-t-none border-t-0">
+                  <Link href={`/events/${event.id}`} className="w-full">
+                    View Event Details & Photos
                   </Link>
                 </Button>
               </div>
