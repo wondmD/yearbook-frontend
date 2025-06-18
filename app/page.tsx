@@ -317,7 +317,7 @@ export default function HomePage() {
                 <TypingAnimation text="YEARBOOK 2025" speed={100} />
               </h2>
               <p className="text-xl text-blue-100 leading-relaxed mb-8">
-                Celebrating four incredible years of friendship, innovation, and unforgettable memories in Computer
+                Celebrating five incredible years of friendship, innovation, and unforgettable memories in Computer
                 Science & Engineering.
               </p>
 
@@ -346,7 +346,7 @@ export default function HomePage() {
               <TypingAnimation text="YEARBOOK 2025" speed={100} />
             </h2>
             <p className="text-xl text-blue-100 leading-relaxed mb-12">
-              Celebrating four incredible years of friendship, innovation, and unforgettable memories in Computer
+              Celebrating five incredible years of friendship, innovation, and unforgettable memories in Computer
               Science & Engineering.
             </p>
 
@@ -482,7 +482,7 @@ export default function HomePage() {
               <div className="text-blue-200 text-lg">Precious Photos</div>
             </div>
             <div className="group hover:scale-110 transition-transform duration-300">
-              <div className="text-4xl font-bold mb-2 text-white group-hover:text-yellow-300 transition-colors">4</div>
+              <div className="text-4xl font-bold mb-2 text-white group-hover:text-yellow-300 transition-colors">5</div>
               <div className="text-blue-200 text-lg">Amazing Years</div>
             </div>
             <div className="group hover:scale-110 transition-transform duration-300">
@@ -588,7 +588,7 @@ export default function HomePage() {
               <div className="text-gray-600">Photos Captured</div>
             </div>
             <div className="text-center group hover:scale-110 transition-transform duration-300">
-              <div className="text-4xl font-bold text-blue-600 mb-2 group-hover:animate-bounce delay-300">4</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2 group-hover:animate-bounce delay-300">5</div>
               <div className="text-gray-600">Years Together</div>
             </div>
           </div>
