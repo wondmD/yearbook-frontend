@@ -53,7 +53,8 @@ export function PendingPhotos() {
     try {
       setUpdating(prev => ({ ...prev, [photoId]: true }));
       
-      await authPatch(getAdminApiUrl(`photos/${photoId}/approve`), {});
+      // Send PATCH request to /api/events/admin/pending-photos/{photo_id}/
+      await authPatch(getAdminApiUrl(`pending-photos/${photoId}`), { action: 'approve' });
       
       toast.success('Photo approved successfully');
       setPhotos(prev => prev.filter(p => p.id !== photoId));
@@ -73,7 +74,8 @@ export function PendingPhotos() {
     try {
       setUpdating(prev => ({ ...prev, [photoId]: true }));
       
-      await authPatch(getAdminApiUrl(`photos/${photoId}/reject`), {});
+      // Send PATCH request to /api/events/admin/pending-photos/{photo_id}/
+      await authPatch(getAdminApiUrl(`pending-photos/${photoId}`), { action: 'reject' });
       
       toast.success('Photo rejected successfully');
       setPhotos(prev => prev.filter(p => p.id !== photoId));

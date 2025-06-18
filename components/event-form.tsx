@@ -46,6 +46,7 @@ export function EventForm({ onSuccess, children }: EventFormProps) {
   const [highlights, setHighlights] = useState(['']);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
   const [category, setCategory] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -125,27 +126,92 @@ export function EventForm({ onSuccess, children }: EventFormProps) {
     }
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      // Check file size (max 5MB)
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        toast.error('File size should be less than 5MB');
+    if (!selectedFile) return;
+
+    try {
+      // Check file size (max 30MB)
+      const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        toast.error('File size should be less than 30MB');
         return;
       }
       
       // Check file type
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!validTypes.includes(selectedFile.type)) {
-        toast.error('Only JPEG, PNG, and WebP images are allowed');
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+      const isHEIC = isHEICFile(selectedFile);
+      
+      if (!validTypes.includes(selectedFile.type) && !isHEIC) {
+        toast.error('Only JPEG, PNG, WebP, and HEIC images are allowed');
         return;
       }
       
-      setFile(selectedFile);
-      setPreviewUrl(URL.createObjectURL(selectedFile));
+      // Show loading state for HEIC conversion
+      if (isHEIC) {
+        setIsConverting(true);
+      } else {
+        // Show preview immediately for non-HEIC images
+        setPreviewUrl(URL.createObjectURL(selectedFile));
+        setFile(selectedFile);
+        return;
+      }
+      
+      // Convert HEIC to PNG if needed - only in browser environment
+      if (isHEIC && typeof window !== 'undefined') {
+        try {
+          // Dynamically import heic2any only when needed and in browser
+          const heic2any = (await import('heic2any')).default;
+          const pngBlob = await heic2any({
+            blob: selectedFile,
+            toType: 'image/png',
+            quality: 0.8
+          }) as Blob;
+          
+          // Create a new file from the Blob
+          const fileToUse = new File(
+            [pngBlob],
+            selectedFile.name.replace(/\.(heic|heif)$/i, '.png'),
+            { type: 'image/png' }
+          );
+          
+          // Update the preview with the converted image
+          const previewUrl = URL.createObjectURL(pngBlob);
+          setPreviewUrl(previewUrl);
+          setFile(fileToUse);
+        } catch (conversionError) {
+          console.error('Error converting HEIC image:', conversionError);
+          toast.error('Failed to convert HEIC image. Please try a different format.');
+          setPreviewUrl(null);
+          setFile(null);
+        }
+      } else if (isHEIC) {
+        // If we're not in the browser, we can't convert HEIC
+        toast.error('HEIC conversion is not supported in this environment. Please use a different image format.');
+        setPreviewUrl(null);
+        setFile(null);
+      }
+      
+    } catch (error) {
+      console.error('Error processing image:', error);
+      toast.error('Failed to process image. Please try another file.');
+      setPreviewUrl(null);
+      setFile(null);
+    } finally {
+      // Always reset the loading state when done
+      setIsConverting(false);
     }
   };
   
+  const isHEICFile = (file: File): boolean => {
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
+    return fileType === 'image/heic' || 
+           fileType === 'image/heif' || 
+           fileName.endsWith('.heic') || 
+           fileName.endsWith('.heif');
+  };
+
   const removeImage = () => {
     setFile(null);
     setPreviewUrl(null);
@@ -257,24 +323,30 @@ export function EventForm({ onSuccess, children }: EventFormProps) {
             <Label>Cover Image</Label>
             <div className="flex items-center gap-4">
               <div className="relative w-24 h-24 border rounded-md overflow-hidden group">
-                {previewUrl ? (
-                  <>
+                {isConverting ? (
+                  <div className="h-40 w-full flex items-center justify-center bg-gray-100 rounded-md">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Converting HEIC to PNG...</p>
+                    </div>
+                  </div>
+                ) : previewUrl ? (
+                  <div className="relative h-40 w-full">
                     <img
                       src={previewUrl}
                       alt="Preview"
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover rounded-md"
                     />
-                    <button
+                    <Button
                       type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        removeImage();
-                      }}
-                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full"
+                      onClick={removeImage}
                     >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : (
                   <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
                     <span>No image</span>
@@ -290,12 +362,10 @@ export function EventForm({ onSuccess, children }: EventFormProps) {
                 </Label>
                 <Input
                   id="cover_image"
-                  name="cover_image"
                   type="file"
-                  accept="image/jpeg, image/png, image/webp"
-                  className="hidden"
+                  accept="image/*,.heic,.heif"
                   onChange={handleFileChange}
-                  disabled={loading}
+                  className="hidden"
                   ref={fileInputRef}
                 />
               </div>

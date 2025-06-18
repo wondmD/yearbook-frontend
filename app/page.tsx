@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { GraduationCap, ArrowRight, Users, Calendar, Camera, Heart, Star, Code, Trophy } from "lucide-react"
+import Image from "next/image"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { GraduationCap, ArrowRight, Users, Calendar, Camera, Heart, Star, Code, Trophy, Video, Volume2, VolumeX } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { Navigation } from "@/components/navigation"
 import { CountdownTimer } from "@/components/countdown-timer"
@@ -21,11 +23,180 @@ import { CodeDecorations } from "@/components/code-decorations"
 import { toast } from "sonner"
 import { getApiUrl } from "@/lib/api"
 
+// Video Player Component
+const VideoPlayer = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  
+  // Format time in seconds to MM:SS
+  const formatTime = (timeInSeconds: number) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+  
+  // Handle video loaded
+  const handleVideoCanPlay = () => {
+    setIsVideoLoaded(true);
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration || 0);
+    }
+  };
+  
+  // Update progress bar as video plays
+  const handleVideoTimeUpdate = () => {
+    if (videoRef.current) {
+      const currentProgress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+      setProgress(currentProgress);
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+  
+  // Toggle play/pause
+  const togglePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+  
+  // Toggle mute/unmute
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+  
+  // Handle progress bar click
+  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      const newTime = pos * duration;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+  
+  // Toggle fullscreen
+  const toggleFullscreen = () => {
+    if (videoRef.current) {
+      if (!document.fullscreenElement) {
+        videoRef.current.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl relative group">
+      {/* Loading Overlay */}
+      <div className={`absolute inset-0 bg-black/80 flex items-center justify-center z-20 transition-opacity duration-300 ${isVideoLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white font-medium">Loading video...</p>
+        </div>
+      </div>
+      
+      {/* Video Element */}
+      <video 
+        id="journey-video"
+        ref={videoRef}
+        autoPlay 
+        loop 
+        muted
+        playsInline
+        className="w-full h-auto relative z-10"
+        onCanPlay={handleVideoCanPlay}
+        onTimeUpdate={handleVideoTimeUpdate}
+      >
+        <source src="/vid/video_2025-06-16_14-25-00.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      
+      {/* Video Controls Overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Progress Bar */}
+        <div 
+          className="h-1 bg-white/30 rounded-full mb-2 overflow-hidden cursor-pointer"
+          onClick={handleProgressBarClick}
+        >
+          <div 
+            className="h-full bg-blue-500 transition-all duration-200"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          {/* Left Controls */}
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={togglePlayPause}
+              className="text-white hover:text-blue-400 transition-colors"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
+              )}
+            </button>
+            <button 
+              onClick={toggleMute}
+              className="text-white hover:text-blue-400 transition-colors"
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </button>
+            <span className="text-sm text-white/80">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+          </div>
+          
+          {/* Right Controls */}
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={toggleFullscreen}
+              className="text-white hover:text-blue-400 transition-colors"
+              aria-label="Fullscreen"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a1 1 0 011-1h4a1 1 0 110 2H7v2a1 1 0 11-2 0zm5 5v2a1 1 0 11-2 0v-4a1 1 0 112 0v2h2a1 1 0 110 2h-4zm4-8a1 1 0 011 1v4a1 1 0 11-2 0V9h-2a1 1 0 110-2h4z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function HomePage() {
-  const [currentPage, setCurrentPage] = useState("home")
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [authAction, setAuthAction] = useState("")
-  const { data: session } = useSession()
+  const [currentPage, setCurrentPage] = useState("home");
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authAction, setAuthAction] = useState("");
+  const { data: session } = useSession();
 
   const handleAddContent = async (action: string) => {
     if (!session) {
@@ -202,17 +373,63 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-4 md:grid-cols-8 gap-4 max-w-2xl mb-8">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="relative group">
-                  <div className="w-16 h-16 bg-white/20 rounded-full border-2 border-white/30 hover:border-white/50 transition-all duration-300 group-hover:scale-110"></div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
-                </div>
+              {[
+                "/images/amaizing/photo_2025-06-16_13-21-43.jpg",
+                "/images/amaizing/photo_2025-06-16_13-22-45.jpg",
+                "/images/amaizing/photo_2025-06-16_13-24-17.jpg",
+                "/images/amaizing/photo_2025-06-16_13-51-59.jpg",
+                "/images/amaizing/photo_2025-06-16_13-53-31.jpg",
+                "/images/amaizing/photo_2025-06-16_13-55-09.jpg",
+                "/images/amaizing/photo_2025-06-16_13-55-28.jpg",
+                "/images/amaizing/ss.jpg"
+              ].map((src, i) => (
+                <Dialog key={i}>
+                  <DialogTrigger asChild>
+                    <div className="relative group cursor-pointer">
+                      <div className="w-16 h-16 bg-white/20 rounded-full border-2 border-white/30 hover:border-white/50 transition-all duration-300 group-hover:scale-110 overflow-hidden">
+                        <Image
+                          src={src}
+                          alt={`Graduate ${i + 1}`}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none">
+                    <div className="relative w-full h-[80vh] flex items-center justify-center">
+                      <Image
+                        src={src}
+                        alt={`Graduate ${i + 1}`}
+                        fill
+                        className="object-contain p-4 bg-white rounded-lg"
+                        unoptimized={src.endsWith('.gif')}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-4 text-center">
+                        {/* <p className="text-lg font-medium">Graduate {i + 1}</p> */}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               ))}
             </div>
 
             <p className="text-blue-200 text-lg">
-              <TypingAnimation text="And 50+ more incredible students waiting to reconnect with you!" speed={50} />
+              <TypingAnimation text="And 100+ more incredible students waiting to reconnect with you!" speed={50} />
             </p>
+          </div>
+
+          {/* Video Section */}
+          <div className="mb-16">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Video className="h-6 w-6 text-blue-400" />
+                <h3 className="text-2xl font-semibold">Our Journey Together</h3>
+              </div>
+            </div>
+            <VideoPlayer />
           </div>
 
           {/* Feature Grid */}
@@ -221,7 +438,7 @@ export default function HomePage() {
               <CardContent className="p-6 text-center">
                 <Users className="h-10 w-10 mx-auto mb-4 text-blue-300 animate-bounce" />
                 <h4 className="font-semibold mb-2 text-lg text-white">Connect With</h4>
-                <p className="text-3xl font-bold text-white">60+ Classmates</p>
+                <p className="text-3xl font-bold text-white">100+ Classmates</p>
               </CardContent>
             </Card>
 
@@ -254,7 +471,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="group hover:scale-110 transition-transform duration-300">
               <div className="text-4xl font-bold mb-2 text-white group-hover:text-yellow-300 transition-colors">
-                60+
+                100+
               </div>
               <div className="text-blue-200 text-lg">Brilliant Students</div>
             </div>
@@ -359,7 +576,7 @@ export default function HomePage() {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center group hover:scale-110 transition-transform duration-300">
-              <div className="text-4xl font-bold text-blue-600 mb-2 group-hover:animate-bounce">60+</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2 group-hover:animate-bounce">100+</div>
               <div className="text-gray-600">Amazing Students</div>
             </div>
             <div className="text-center group hover:scale-110 transition-transform duration-300">

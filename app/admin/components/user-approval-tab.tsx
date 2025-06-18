@@ -9,12 +9,16 @@ import { Loader2, Check, X } from "lucide-react"
 import { useSession } from "next-auth/react"
 
 interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
-  name: string;
-  is_approved: boolean;
-  created_at: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
+  date_joined: string;
+  profile: number;
 }
 
 export function UserApprovalTab() {
@@ -33,7 +37,8 @@ export function UserApprovalTab() {
       setLoading(true);
       console.log('[UserApprovalTab] Fetching unapproved users...');
       
-      const apiUrl = '/api/admin/users/unapproved';
+      const baseUrl = 'https://yearbook.ethioace.com';
+      const apiUrl = `${baseUrl}/api/auth/admin/users/unapproved/`;
       console.log('[UserApprovalTab] Making request to:', apiUrl);
       
       const response = await fetch(apiUrl, {
@@ -42,19 +47,29 @@ export function UserApprovalTab() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.accessToken}`,
         },
+        credentials: 'include',
         cache: 'no-store',
       });
       
       console.log('[UserApprovalTab] Response status:', response.status);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[UserApprovalTab] Error response:', errorData);
+        let errorData = {};
+        try {
+          errorData = await response.json();
+          console.error('[UserApprovalTab] Error response data:', errorData);
+        } catch (e) {
+          console.error('[UserApprovalTab] Failed to parse error response');
+        }
         throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
       }
       
-      const users = await response.json();
-      console.log('[UserApprovalTab] Received users:', users);
+      const data = await response.json();
+      console.log('[UserApprovalTab] Received response:', data);
+      
+      // Extract users array from the response
+      const users = data.users || [];
+      console.log('[UserApprovalTab] Extracted users:', users);
       
       // Ensure we have an array of users
       if (!Array.isArray(users)) {
@@ -65,14 +80,16 @@ export function UserApprovalTab() {
       
       // Transform the data to match our User interface
       const usersData = users.map(user => ({
-        id: String(user.id || ''),
-        username: user.username || 'Unknown',
-        email: user.email || '',
-        name: [user.first_name, user.last_name]
-          .filter(Boolean)
-          .join(' ') || user.username || 'Unknown User',
-        is_approved: Boolean(user.is_approved),
-        created_at: user.date_joined || user.created_at || new Date().toISOString()
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        is_active: user.is_active,
+        is_staff: user.is_staff,
+        is_superuser: user.is_superuser,
+        date_joined: user.date_joined,
+        profile: user.profile,
       }));
       
       console.log(`[UserApprovalTab] Setting ${usersData.length} users to state`);
@@ -87,11 +104,11 @@ export function UserApprovalTab() {
     }
   };
 
-  const handleApprove = async (userId: string) => {
+  const handleApprove = async (userId: number) => {
     try {
       setApproving(prev => ({ ...prev, [userId]: true }));
-      
-      const response = await fetch(`/api/admin/users/${userId}/approve`, {
+      const baseUrl = 'https://yearbook.ethioace.com';
+      const response = await fetch(`${baseUrl}/api/auth/admin/users/${userId}/approve/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,11 +131,11 @@ export function UserApprovalTab() {
     }
   };
 
-  const handleReject = async (userId: string) => {
+  const handleReject = async (userId: number) => {
     try {
       setRejecting(prev => ({ ...prev, [userId]: true }));
-      
-      const response = await fetch(`/api/admin/users/${userId}/reject`, {
+      const baseUrl = 'https://yearbook.ethioace.com';
+      const response = await fetch(`${baseUrl}/api/auth/admin/users/${userId}/reject/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,13 +206,18 @@ export function UserApprovalTab() {
             <div key={user.id} className="p-4 flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Avatar>
-                  <AvatarImage src={`/api/avatar/${user.id}`} alt={user.name} />
+                  <AvatarImage 
+                    src={`/api/avatar/${user.id}`} 
+                    alt={`${user.first_name} ${user.last_name}`} 
+                  />
                   <AvatarFallback>
-                    {user.name.charAt(0).toUpperCase()}
+                    {user.first_name?.charAt(0).toUpperCase() || user.username.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="font-medium">{user.name}</div>
+                  <div className="font-medium">
+                    {user.first_name} {user.last_name}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     @{user.username}
                   </div>

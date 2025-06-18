@@ -20,10 +20,9 @@ import { toast } from 'sonner';
 import { getApiUrl, API_BASE_URL } from '@/lib/api';
 import { Plus, Heart, MessageSquare, Loader2, X } from "lucide-react"
 import Image from "next/image"
-import { Dialog, DialogContent, DialogHeader, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogHeader } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -62,6 +61,7 @@ const MemoryCard = ({
 
   // Safely get user info with fallbacks
   const user = memory.created_by || {};
+  console.log(user)
   const username = user?.username || 'Anonymous';
   const avatar = user?.avatar;
   const fallbackText = username?.[0]?.toUpperCase() || 'U';
@@ -119,20 +119,9 @@ const MemoryCard = ({
               </span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onLike(memory.id)}
-            className={`flex items-center space-x-1 ${memory.has_liked ? 'text-red-500' : ''}`}
-          >
-            <Heart
-              size={16}
-              className={memory.has_liked ? 'fill-current' : ''}
-            />
-            <span>{memory.likes_count || 0}</span>
-          </Button>
+          
         </div>
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+        {/* <div className="flex items-center space-x-2 text-sm text-muted-foreground">
           <Avatar className="h-6 w-6">
             {avatar && <AvatarImage src={avatar} alt={username} />}
             <AvatarFallback>{fallbackText}</AvatarFallback>
@@ -140,7 +129,7 @@ const MemoryCard = ({
           <span>{username}</span>
           <span>•</span>
           <span>{formattedDate}</span>
-        </div>
+        </div> */}
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">{memory.description}</p>
@@ -179,12 +168,92 @@ const AddMemoryDialog = ({
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
+  // Maximum file size 30MB
+  const MAX_FILE_SIZE = 30 * 1024 * 1024;
+  const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+  const isHEICFile = (file: File): boolean => {
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
+    return fileType === 'image/heic' || 
+           fileType === 'image/heif' || 
+           fileName.endsWith('.heic') || 
+           fileName.endsWith('.heif');
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    try {
+      // Check file size
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        toast.error('File size should be less than 30MB');
+        return;
+      }
+      
+      // Check file type
+      const isHEIC = isHEICFile(selectedFile);
+      if (!ACCEPTED_IMAGE_TYPES.includes(selectedFile.type) && !isHEIC) {
+        toast.error('Only JPEG, PNG, WebP, and HEIC images are allowed');
+        return;
+      }
+      
+      // Show loading state for HEIC conversion
+      if (isHEIC) {
+        setIsConverting(true);
+      } else {
+        // Show preview immediately for non-HEIC images
+        setPreviewUrl(URL.createObjectURL(selectedFile));
+        setImage(selectedFile);
+        return;
+      }
+      
+      // Convert HEIC to PNG if needed - only in browser environment
+      if (isHEIC && typeof window !== 'undefined') {
+        try {
+          // Dynamically import heic2any only when needed and in browser
+          const heic2any = (await import('heic2any')).default;
+          const pngBlob = await heic2any({
+            blob: selectedFile,
+            toType: 'image/png',
+            quality: 0.8
+          }) as Blob;
+          
+          // Create a new file from the Blob
+          const fileToUse = new File(
+            [pngBlob],
+            selectedFile.name.replace(/\.(heic|heif)$/i, '.png'),
+            { type: 'image/png' }
+          );
+          
+          // Update the preview with the converted image
+          const previewUrl = URL.createObjectURL(pngBlob);
+          setPreviewUrl(previewUrl);
+          setImage(fileToUse);
+        } catch (conversionError) {
+          console.error('Error converting HEIC image:', conversionError);
+          toast.error('Failed to convert HEIC image. Please try a different format.');
+          setPreviewUrl(null);
+          setImage(null);
+        }
+      } else if (isHEIC) {
+        // If we're not in the browser, we can't convert HEIC
+        toast.error('HEIC conversion is not supported in this environment. Please use a different image format.');
+        setPreviewUrl(null);
+        setImage(null);
+      }
+      
+    } catch (error) {
+      console.error('Error processing image:', error);
+      toast.error('Failed to process image. Please try another file.');
+      setPreviewUrl(null);
+      setImage(null);
+    } finally {
+      // Always reset the loading state when done
+      setIsConverting(false);
     }
   };
 
@@ -269,12 +338,20 @@ const AddMemoryDialog = ({
                 <Input
                   id="image"
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.heif"
                   onChange={handleImageChange}
                   className="cursor-pointer"
+                  disabled={isConverting}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPEG, PNG, WebP, or HEIC (max 30MB)
+                </p>
               </div>
-              {previewUrl && (
+              {isConverting ? (
+                <div className="h-16 w-16 flex items-center justify-center bg-muted rounded-md">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : previewUrl ? (
                 <div className="relative h-16 w-16 rounded-md overflow-hidden">
                   <Image
                     src={previewUrl}
@@ -283,7 +360,7 @@ const AddMemoryDialog = ({
                     className="object-cover"
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
           
@@ -313,27 +390,28 @@ export default function MemoriesPage() {
   const router = useRouter();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const funnyCategories = [
-    { id: 'all', label: 'All Memories', emoji: '📚' },
-    { id: 'funny', label: 'Funny Moments', emoji: '😂' },
-    { id: 'coding', label: 'Coding Disasters', emoji: '💻' },
-    { id: 'food', label: 'Food Adventures', emoji: '🍕' },
-    { id: 'random', label: 'Random Shenanigans', emoji: '🎭' },
-    { id: 'my-memories', label: 'My Memories', emoji: '🌟' },
+  // Fun facts about memories to show in the intro
+  const funFacts = [
+    "Did you know? The average person has about 6,200 thoughts per day. Let's make some of them memorable!",
+    "Fun fact: Laughter can improve memory. So go ahead, share that funny moment!",
+    "Memory tip: The more senses you use when creating a memory, the stronger it becomes. Add those photos!",
+    "Did you know? Smelling something familiar can trigger strong memories. What's your memory's signature scent?",
+    "Fun fact: The brain can store about 2.5 petabytes of information. That's about 3 million hours of TV shows!"
   ];
+  
+  // Get a random fun fact
+  const randomFact = funFacts[Math.floor(Math.random() * funFacts.length)];
 
   useEffect(() => {
     const fetchMemories = async () => {
       try {
         setIsLoading(true);
         
-        // Determine the endpoint based on the active tab
-        const isMyMemories = activeTab === 'my-memories';
-        const endpoint = isMyMemories ? 'my_memories' : '';
+        // Always fetch all memories
+        const endpoint = '';
         
         // Set up headers
         const headers: Record<string, string> = {
@@ -350,7 +428,6 @@ export default function MemoriesPage() {
         console.log('=== FETCHING MEMORIES ===');
         console.log('Endpoint:', endpoint || '(default)');
         console.log('Full URL:', url);
-        console.log('Active Tab:', activeTab);
         console.log('Using Auth:', !!session?.accessToken);
         
         const res = await fetch(url, { 
@@ -465,21 +542,19 @@ export default function MemoriesPage() {
     };
 
     fetchMemories();
-  }, [activeTab, session]);
+  }, [session]);
 
   const handleLike = async (memoryId: number) => {
-    if (!session) {
-      router.push('/login');
-      return;
-    }
+    
 
     try {
-      const res = await fetch(getApiUrl(`${memoryId}/like/`), {
+      const res = await fetch(`${API_BASE_URL}/api/memories/${memoryId}/like/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.accessToken}`,
+          // 'Authorization': `Bearer ${session.accessToken}`,
         },
+        credentials: 'include',
       });
       
       const responseData = await res.json();
@@ -557,10 +632,10 @@ export default function MemoriesPage() {
     try {
       setIsSubmitting(true);
       
-      // Client-side image size validation (5MB limit)
-      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+      // Client-side image size validation (30MB limit)
+      const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB in bytes
       if (data.image && data.image.size > MAX_FILE_SIZE) {
-        throw new Error('Image size exceeds 5MB limit. Please choose a smaller file.');
+        throw new Error('Image size exceeds 30MB limit. Please choose a smaller file.');
       }
 
       // Prepare form data
@@ -886,9 +961,9 @@ export default function MemoriesPage() {
         }
         
         // Get more details from the error object if available
-        // @ts-ignore
-        if (error.details) {
-          errorDetails = error.details;
+        // Handle error details if they exist
+        if ('details' in error) {
+          errorDetails = (error as any).details;
         }
       } else if (typeof error === 'string') {
         errorMessage = error;
@@ -947,32 +1022,19 @@ export default function MemoriesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <Navigation />
       <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col space-y-6">
-          <div className="flex justify-between items-center">
-            <Tabs 
-              value={activeTab} 
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
-                {funnyCategories.map((category) => (
-                  <TabsTrigger 
-                    key={category.id} 
-                    value={category.id}
-                    className="flex items-center gap-1"
-                  >
-                    <span>{category.emoji}</span>
-                    <span className="hidden sm:inline">{category.label}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            
+        <div className="flex flex-col space-y-8">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-indigo-900 mb-2">Memory Lane</h1>
+            <p className="text-lg text-indigo-700 mb-4">Where every moment tells a story</p>
+            <p className="text-indigo-600 italic">✨ {randomFact} ✨</p>
+          </div>
+          
+          <div className="flex justify-end">
             <Button 
-              className="ml-4" 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
               onClick={() => {
                 if (!session) {
                   router.push('/auth/signin');
@@ -982,14 +1044,15 @@ export default function MemoriesPage() {
               }}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Add Memory
+              Share Your Memory
             </Button>
-            <AddMemoryDialog 
-              open={isDialogOpen} 
-              onOpenChange={setIsDialogOpen}
-              onSubmit={handleSubmitMemory}
-            />
           </div>
+          
+          <AddMemoryDialog 
+            open={isDialogOpen} 
+            onOpenChange={setIsDialogOpen}
+            onSubmit={handleSubmitMemory}
+          />
 
           <div className="py-4">
             {isLoading ? (
@@ -1000,11 +1063,11 @@ export default function MemoriesPage() {
               </div>
             ) : memories.length === 0 ? (
               <div className="text-center py-12">
-                <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-2 text-lg font-medium">No memories yet</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Be the first to share a memory from our journey together!
-                </p>
+                <div className="mx-auto w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquare className="h-12 w-12 text-indigo-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No memories yet</h3>
+                <p className="text-gray-500 mb-6">Be the first to share a memory!</p>
                 <Button 
                   className="mt-4" 
                   onClick={() => {

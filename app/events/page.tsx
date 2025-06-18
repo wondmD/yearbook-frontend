@@ -1,7 +1,6 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-import { AuthRequiredModal } from "@/components/auth-required-modal"
 // Removed unused Card imports
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,7 +15,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { CodeDecorations } from "@/components/code-decorations"
 import { FloatingCode } from "@/components/floating-code"
-import { useSession } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
@@ -58,45 +57,35 @@ function EventsPage() {
 
   const loadEvents = useCallback(async () => {
     try {
-      // First, fetch all events without category filter
-      const response = await fetchEvents();
+      // Fetch events with the selected category filter
+      const response = await fetchEvents(selectedCategory === 'All' ? undefined : selectedCategory);
       console.log('API Response:', response);
       
-      // Handle the case where the response is not an array
-      const eventsData = Array.isArray(response) ? response : [];
+      // The response is already an array from fetchEvents
+      const eventsData = response || [];
       console.log('Processed events data:', eventsData);
       
-      // Filter events based on category, approval status and user permissions
+      // Filter events based on approval status and user permissions
       const visibleEvents = eventsData.filter(event => {
-        console.log('Checking event:', event);
-        // Filter by selected category
-        const matchesCategory = selectedCategory === 'All' || event.category === selectedCategory;
-        if (!matchesCategory) return false;
-        
         // Show all approved events to everyone
         if (event.is_approved) return true;
         
         // For unapproved events, only show to the creator or admin
-        const userId = session?.user?.id;
-        if (!userId) return false; // Not logged in users can't see unapproved events
+        if (!session?.user) return false;
         
-        // Handle both object and direct ID cases for created_by
-        let creatorId: string | number | undefined;
+        // Check if user is admin
+        if (session.user.role === 'ADMIN' || session.user.isAdmin) return true;
         
-        if (event.created_by && typeof event.created_by === 'object' && 'id' in event.created_by) {
-          creatorId = event.created_by.id;
-        } else if (event.created_by) {
-          creatorId = event.created_by as string | number;
+        // Check if user is the creator of the event
+        if (event.created_by) {
+          const creatorId = typeof event.created_by === 'object' 
+            ? event.created_by.id 
+            : event.created_by;
+            
+          return creatorId?.toString() === session.user.id?.toString();
         }
         
-        // Convert both IDs to strings for safe comparison
-        const creatorIdStr = creatorId?.toString();
-        const currentUserIdStr = userId?.toString();
-        
-        const isCreator = !!creatorIdStr && creatorIdStr === currentUserIdStr;
-        const isAdmin = session?.user?.role === 'ADMIN';
-        
-        return isCreator || isAdmin;
+        return false;
       });
       
       console.log('Visible events after filtering:', visibleEvents);
@@ -153,7 +142,7 @@ function EventsPage() {
           </p>
           {session ? (
             canCreateEvents ? (
-              <EventForm onSuccess={() => window.location.reload()}>
+              <EventForm onSuccess={() => router.refresh()}>
                 <Button className="mt-4">
                   Add Event
                 </Button>
@@ -386,12 +375,14 @@ export default function EventsPageRoute() {
       <CodeDecorations />
       <FloatingCode />
       <EventsPage />
-      {!session && showAuthModal && (
+      {/* {!session && showAuthModal && (
         <AuthRequiredModal 
+          isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
+          onSignIn={() => signIn(undefined, { callbackUrl: '/events' })}
           action="view events" 
         />
-      )}
+      )} */}
     </div>
   );
 }

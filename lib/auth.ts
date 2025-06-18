@@ -15,7 +15,7 @@ declare module "next-auth" {
       studentId?: string
       batch?: string
       role?: string
-      image?: string
+      image?: string | null
     }
     accessToken: string
     error?: string
@@ -48,20 +48,26 @@ declare module "next-auth/jwt" {
       id: string
       username: string
       email: string
-      is_approved: boolean
-      is_admin: boolean
+      isApproved: boolean
+      isAdmin: boolean
       name?: string
-      studentId?: string
-      batch?: string
+      studentId?: string | null
+      batch?: string | null
       role?: string
-      image?: string
+      image?: string | null
     }
     error?: string
   }
 }
 
-// API base URL from environment variable or default to local development
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') + '/api/auth'
+// Use the deployed backend URL for authentication
+const API_BASE_URL = 'https://yearbook.ethioace.com/api/auth'
+
+// Ensure we have a secret for JWT
+if (!process.env.NEXTAUTH_SECRET) {
+  console.warn('NEXTAUTH_SECRET is not set. Using a temporary secret for development.')
+  process.env.NEXTAUTH_SECRET = 'dev-secret-change-in-production'
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -145,6 +151,14 @@ export const authOptions: NextAuthOptions = {
           
           // Use the user data from the response
           const userData = responseData.user || {};
+          
+          // Check if user is approved
+          if (!userData.is_approved) {
+            console.log('Login attempt by unapproved user:', userData.email);
+            // Return null with error message to be handled by the signin page
+            throw new Error('Your account is pending approval. Please contact the administrator.');
+          }
+          
           return {
             id: userData.id || '',
             username: userData.username || '',
@@ -161,7 +175,8 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Authentication error:', error)
-          throw new Error('Authentication failed. Please check your credentials.')
+          // Re-throw the error to be caught by NextAuth
+          throw error
         }
         return null
       },
@@ -171,56 +186,65 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       // Initial sign in
       if (account && user && 'access' in user) {
-        return {
+        // Create a new token with user data
+        const newToken = {
           ...token,
           accessToken: user.access,
           refreshToken: user.refresh,
           accessTokenExpires: user.accessTokenExpires,
           user: {
             id: user.id,
-            email: user.email,
             username: user.username,
-            name: user.name,
-            is_approved: user.is_approved,
-            is_admin: user.is_admin || false,
-            studentId: user.studentId,
-            batch: user.batch,
-            role: user.role,
-            image: user.image
-          }
-        }
+            email: user.email,
+            isApproved: user.is_approved,
+            isAdmin: user.is_admin,
+            name: user.name || user.username,
+            studentId: user.studentId || null,
+            batch: user.batch || null,
+            role: (user as any).role || 'user',
+            image: user.image || null,
+          },
+        };
+        return newToken;
       }
-      return token
+      return token;
     },
-    async session({ session, token }) {
-      // Send properties to the client
-      if (token) {
+    async session({ session, token }: { session: any; token: any }) {
+      if (token?.user) {
+        // Safely assign user data from token to session
         session.user = {
           ...session.user,
-          id: token.user?.id || '',
-          username: token.user?.username || '',
-          email: token.user?.email || '',
-          isApproved: token.user?.is_approved || false,
-          isAdmin: token.user?.is_admin || false,
-          name: token.user?.name || undefined,
-          studentId: token.user?.studentId || undefined,
-          batch: token.user?.batch || undefined,
-          role: token.user?.role || undefined,
-          image: token.user?.image || undefined,
-        }
-        session.accessToken = token.accessToken
-        if (token.error) {
-          session.error = token.error
-        }
+          id: token.user.id || '',
+          username: token.user.username || '',
+          email: token.user.email || '',
+          isApproved: token.user.isApproved || false,
+          isAdmin: token.user.isAdmin || false,
+          name: token.user.name || token.user.username || '',
+          studentId: token.user.studentId || undefined,
+          batch: token.user.batch || undefined,
+          role: token.user.role || 'user',
+          image: token.user.image || undefined,
+        };
       }
-      return session
-    }
+      
+      if (token?.accessToken) {
+        session.accessToken = token.accessToken;
+      }
+      
+      if (token?.error) {
+        session.error = token.error;
+      }
+      
+      return session;
+    },
   },
   // Session configuration
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  // Enable debug logging in development
+  debug: process.env.NODE_ENV === 'development',
   // Custom pages
   pages: {
     signIn: "/auth/signin",
@@ -228,5 +252,4 @@ export const authOptions: NextAuthOptions = {
   },
   // Security
   secret: process.env.NEXTAUTH_SECRET || 'your-secret-key',
-  debug: process.env.NODE_ENV === 'development'
 }

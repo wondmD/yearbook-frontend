@@ -31,14 +31,42 @@ export function ClassmatesPage({ onAddProfile }: ClassmatesPageProps) {
       setIsLoading(true);
       const data = await fetchProfiles();
       
-      // Filter profiles to show only approved profiles with required fields
-      // Current user will see their own profile even if not approved
+      console.log('Fetched profiles:', data);
+      console.log('Current session user ID:', session?.user?.id);
+      
+      // Filter profiles to show:
+      // 1. All approved profiles with required fields
+      // 2. Current user's own profile (even if pending or missing some fields)
       const validProfiles = data.filter(profile => {
+        // Use username for matching since it appears more reliable than IDs
+        const profileUsername = profile.username || '';
+        const currentUsername = session?.user?.username || '';
+        const isCurrentUser = profileUsername && currentUsername && 
+                            profileUsername.toLowerCase() === currentUsername.toLowerCase();
+        
+        console.log('Matching - Current user:', currentUsername, 
+                   'Profile user:', profileUsername, 
+                   'Match:', isCurrentUser);
+        
+        if (isCurrentUser) {
+          console.log('Showing profile for current user:', profile);
+          return true;
+        }
+        
+        // For other users, only show approved profiles with required fields
         const hasRequiredFields = profile.bio && profile.nickname && profile.image;
         const isApproved = profile.is_approved;
-        const isCurrentUser = profile.user?.id === session?.user?.id;
+        const shouldShow = hasRequiredFields && isApproved;
         
-        return hasRequiredFields && (isApproved || isCurrentUser);
+        console.log('Profile check:', {
+          username: profileUsername,
+          hasRequiredFields,
+          isApproved,
+          shouldShow: isCurrentUser || shouldShow,
+          fullProfile: profile
+        });
+        
+        return isCurrentUser || shouldShow;
       });
       
       setProfiles(validProfiles);

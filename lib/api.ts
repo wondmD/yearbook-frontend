@@ -1,5 +1,5 @@
-// Default to local development URL if environment variable is not set
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+// Use the deployed backend URL
+export const API_BASE_URL = 'https://yearbook.ethioace.com';
 
 // Helper function to get auth token
 async function getAuthToken() {
@@ -105,42 +105,45 @@ export function getApiUrl(endpoint: string = ''): string {
  * @returns Full URL string with trailing slash
  */
 export function getAdminApiUrl(endpoint: string): string {
-  // Remove any leading slashes but preserve trailing slash
-  let cleanEndpoint = endpoint.replace(/^\/+/g, '');
+  // Remove any leading/trailing slashes
+  const cleanEndpoint = endpoint.replace(/^\/+|\/+$/g, '');
   
-  // Ensure the endpoint doesn't end with a slash (we'll add it later)
-  cleanEndpoint = cleanEndpoint.replace(/\/$/, '');
+  // Handle event management (approve/reject)
+  if (cleanEndpoint.startsWith('events/')) {
+    const parts = cleanEndpoint.split('/');
+    if (parts.length > 1) {
+      const eventId = parts[1];
+      return `${API_BASE_URL}/api/events/admin/pending-events/${eventId}/`;
+    }
+  }
   
-  // Handle pending events
+  // Handle pending events list and specific event actions
   if (cleanEndpoint.startsWith('pending-events')) {
-    return getApiUrl(`events/admin/pending-events/`);
+    const parts = cleanEndpoint.split('/');
+    if (parts.length > 1 && parts[1]) {
+      // Handle specific event (e.g., pending-events/3/)
+      return `${API_BASE_URL}/api/events/admin/pending-events/${parts[1]}/`;
+    }
+    return `${API_BASE_URL}/api/events/admin/pending-events/`;
   }
   
   // Handle pending photos
-  if (cleanEndpoint.startsWith('pending-photos')) {
-    return getApiUrl(`events/admin/pending-photos/`);
+  if (cleanEndpoint === 'pending-photos') {
+    return `${API_BASE_URL}/api/events/admin/pending-photos/`;
   }
   
-  // Handle pending memories list
+  // Handle pending memories
   if (cleanEndpoint === 'pending-memories') {
-    return getApiUrl('memories/admin/pending-memories/');
+    return `${API_BASE_URL}/api/memories/admin/pending-memories/`;
   }
   
   // Handle specific memory actions (approve/reject)
   if (cleanEndpoint.startsWith('pending-memories/')) {
     const parts = cleanEndpoint.split('/');
     if (parts.length > 1 && parts[1]) {
-      // Handle specific memory (e.g., pending-memories/1/)
-      return getApiUrl(`memories/admin/pending-memories/${parts[1]}/`);
+      // Handle specific memory (e.g., pending-memories/1/approve/)
+      return `${API_BASE_URL}/api/memories/admin/pending-memories/${parts[1]}/`;
     }
-  }
-  
-  // Handle manage event (approve/reject)
-  if (cleanEndpoint.includes('events/') && (cleanEndpoint.includes('/approve') || cleanEndpoint.includes('/reject'))) {
-    const parts = cleanEndpoint.split('/');
-    const eventId = parts[0];
-    const action = parts[2]; // 'approve' or 'reject'
-    return getApiUrl(`events/admin/pending-events/${eventId}/`);
   }
   
   // Handle manage photo (approve/reject)
@@ -148,7 +151,23 @@ export function getAdminApiUrl(endpoint: string): string {
     const parts = cleanEndpoint.split('/');
     const photoId = parts[0];
     const action = parts[2]; // 'approve' or 'reject'
-    return getApiUrl(`events/admin/pending-photos/${photoId}/`);
+    return `${API_BASE_URL}/api/events/admin/pending-photos/${photoId}/`;
+  }
+  
+  // Handle specific photo management
+  if (cleanEndpoint.startsWith('pending-photos/')) {
+    const parts = cleanEndpoint.split('/');
+    if (parts.length > 1) {
+      return `${API_BASE_URL}/api/events/admin/pending-photos/${parts[1]}/`;
+    }
+  }
+  
+  // Legacy support for photos/ format
+  if (cleanEndpoint.startsWith('photos/')) {
+    const parts = cleanEndpoint.split('/');
+    if (parts.length > 1) {
+      return `${API_BASE_URL}/api/events/admin/pending-photos/${parts[1]}/`;
+    }
   }
   
   // Handle manage memory (approve/reject)
@@ -160,5 +179,5 @@ export function getAdminApiUrl(endpoint: string): string {
   }
   
   // For any other admin endpoints, assume they're under /api/admin/
-  return getApiUrl(`admin/${cleanEndpoint}/`);
+  return `${API_BASE_URL}/api/admin/${cleanEndpoint}/`;
 }

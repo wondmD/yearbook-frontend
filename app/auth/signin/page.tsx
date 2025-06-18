@@ -31,14 +31,39 @@ export default function SignInPage() {
         redirect: false,
       })
 
-      if (result?.error) {
-        setError("Invalid credentials. Please check your email and password.")
+      // Handle the result from signIn
+      if (result) {
+        if (result.error) {
+          // Handle error on client side only
+          if (typeof window !== 'undefined') {
+            // Extract the error message from the URL if it exists
+            const url = new URL(result.url || '', window.location.origin)
+            const errorParam = url.searchParams.get('error')
+            
+            if (errorParam) {
+              // Decode the error message from the URL
+              const errorMessage = decodeURIComponent(errorParam)
+              setError(errorMessage)
+            } else if (result.error.includes('pending approval')) {
+              setError("Your account is pending approval. Please contact the administrator.")
+            } else {
+              setError("Invalid credentials. Please check your email and password.")
+            }
+          } else {
+            // Default error message during SSR/SSG
+            setError("An authentication error occurred. Please try again.")
+          }
+        } else if (result.ok) {
+          // Successful login
+          router.push("/")
+          router.refresh()
+        }
       } else {
-        router.push("/")
-        router.refresh()
+        setError("An unexpected error occurred. Please try again.")
       }
-    } catch (error) {
-      setError("An error occurred. Please try again.")
+    } catch (error: any) {
+      console.error('Sign in error:', error)
+      setError(error.message || "An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -124,11 +149,7 @@ export default function SignInPage() {
           </form>
 
           <div className="text-center space-y-2">
-            <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-md">
-              <p className="font-medium mb-1">Demo Credentials:</p>
-              <p>Username: demo_user</p>
-              <p>Password: password</p>
-            </div>
+            
 
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}

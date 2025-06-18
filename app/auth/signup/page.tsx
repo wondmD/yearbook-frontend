@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -13,39 +11,73 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GraduationCap, Mail, Lock, User, BadgeIcon as IdCard, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
-export default function SignUpPage() {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    password2: "",  // Changed from confirmPassword to password2 to match backend
-    first_name: "",
-    last_name: "",
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
-  const [passwordError, setPasswordError] = useState("")
-  const router = useRouter()
+// Component that uses useSearchParams
+function SignUpForm() {
   const searchParams = useSearchParams()
+  const [success, setSuccess] = useState(false)
+  const registered = searchParams.get('registered') === 'true';
   
   // Check for registration success message
   useEffect(() => {
-    if (searchParams.get('registered') === 'true') {
+    if (registered) {
       setSuccess(true)
       // Remove the query param without refreshing
       const newUrl = new URL(window.location.href)
       newUrl.searchParams.delete('registered')
       window.history.replaceState({}, '', newUrl.toString())
     }
-  }, [searchParams])
+  }, [registered])
+  
+  return <SignUpContent initialSuccess={success} showSuccessMessage={registered} />
+}
+
+// Main page component with Suspense boundary
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <SignUpForm />
+    </Suspense>
+  )
+}
+
+// Main content component
+function SignUpContent({ 
+  initialSuccess, 
+  showSuccessMessage = false 
+}: { 
+  initialSuccess: boolean;
+  showSuccessMessage?: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    password2: "",
+    first_name: "",
+    last_name: "",
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(initialSuccess);
+  const [passwordError, setPasswordError] = useState("");
+  const router = useRouter();
+  
+  // Update success state if initialSuccess changes
+  useEffect(() => {
+    setSuccess(initialSuccess);
+  }, [initialSuccess]);
   
   // Check if passwords match in real-time
   const validatePasswords = (currentPassword: string, confirmPassword: string) => {
     if (currentPassword && confirmPassword && currentPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match")
+      setPasswordError("Passwords do not match");
     } else {
-      setPasswordError("")
+      setPasswordError("");
     }
   }
   
@@ -101,7 +133,7 @@ export default function SignUpPage() {
       };
 
       // Send registration request to the backend
-      const response = await fetch(`http://localhost:8000/api/auth/register/`, {
+      const response = await fetch(`https://yearbook.ethioace.com/api/auth/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +249,7 @@ export default function SignUpPage() {
               {error}
             </div>
           )}
-          {searchParams.get('registered') === 'true' && (
+          {showSuccessMessage && (
             <div className="bg-green-50 text-green-800 p-3 rounded-md flex items-center">
               <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
               Registration successful! Please log in with your credentials.

@@ -1,7 +1,38 @@
+"use client"
+
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Crown, Star, Laugh, Heart } from "lucide-react"
+import { Trophy, Crown, Star, Laugh, Heart, X } from "lucide-react"
 import Image from "next/image"
+
+// Image Modal Component
+const ImageModal = ({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) => {
+  return (
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col">
+        <button 
+          onClick={onClose}
+          className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+          aria-label="Close modal"
+        >
+          <X className="w-8 h-8" />
+        </button>
+        <div className="flex-1 overflow-hidden rounded-lg">
+          <Image
+            src={src}
+            alt={alt}
+            width={800}
+            height={600}
+            className="w-full h-full object-contain max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        <p className="text-white text-center mt-2 text-sm">{alt}</p>
+      </div>
+    </div>
+  )
+}
 
 const nominations = [
   {
@@ -11,7 +42,7 @@ const nominations = [
     description: "Masters of the 'Oops, did someone say my name?' vibe!",
     funnyDescription:
       "If hiding was an Olympic sport, these two would take gold, silver, and somehow bronze too! They've perfected the art of becoming invisible the moment a professor asks a question.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/1.jpg",
   },
   {
     id: 2,
@@ -20,7 +51,7 @@ const nominations = [
     description: "Always in the spotlight, flashing those shades like pros!",
     funnyDescription:
       "These two don't just enter a room - they make an ENTRANCE! Always camera-ready, always fabulous, always making the rest of us look like we just rolled out of bed.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/2.jpg",
   },
   {
     id: 3,
@@ -29,7 +60,7 @@ const nominations = [
     description: "So quiet, you'd think they're ninjas on a stealth mission.",
     funnyDescription:
       "These two are so quiet that when they finally speak, everyone stops and listens like it's a rare Pokemon sighting! They've mastered the art of communication through meaningful glances.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/3.jpg",
   },
   {
     id: 4,
@@ -38,7 +69,7 @@ const nominations = [
     description: "Calculators fear these two—smartness overload!",
     funnyDescription:
       "These two don't just solve problems - they solve problems that don't even exist yet! They're the reason our class average is respectable.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/4.jpg",
   },
   {
     id: 5,
@@ -47,7 +78,7 @@ const nominations = [
     description: "Experts in the ancient art of 'now you see me, now you don't.'",
     funnyDescription:
       "These legends have mastered the art of selective attendance! They show up just enough to pass but mysteriously vanish during the boring parts.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/5.jpg",
   },
   {
     id: 6,
@@ -56,7 +87,7 @@ const nominations = [
     description: "The charm is real, and the mirror agrees!",
     funnyDescription:
       "This guy doesn't just walk - he glides! Even his code looks handsome. Rumor has it that bugs fix themselves just to impress him.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/6.jpg",
   },
   {
     id: 7,
@@ -65,7 +96,7 @@ const nominations = [
     description: "Warning: Cuteness levels may cause instant smiles!",
     funnyDescription:
       "So cute that even error messages apologize before appearing! Has the magical ability to make everyone's day better just by existing.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/7.jpg",
   },
   {
     id: 8,
@@ -74,7 +105,7 @@ const nominations = [
     description: "If attendance was a race, these two would win gold every time!",
     funnyDescription:
       "These two are so punctual that they probably arrive before the professor even thinks about the class! They've never met a deadline they couldn't beat.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/8.jpg",
   },
   {
     id: 9,
@@ -83,7 +114,7 @@ const nominations = [
     description: "The one who speaks up so the rest don't have to!",
     funnyDescription:
       "When everyone else is too shy to ask questions, this hero steps up! Has probably saved the entire class from confusion multiple times.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/9.jpg",
   },
   {
     id: 10,
@@ -92,7 +123,7 @@ const nominations = [
     description: "Keeping the energy high and the party lit 24/7!",
     funnyDescription:
       "These two could make even a database lecture feel like a festival! They're the reason our class events are legendary and our group chats never sleep.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/10.jpg",
   },
   {
     id: 11,
@@ -101,7 +132,7 @@ const nominations = [
     description: "Running circles on the field and stealing hearts!",
     funnyDescription:
       "These stars could have had a career in football if they hadn't chosen CSE! Their footwork is as impressive as their coding skills.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/11.jpg",
   },
   {
     id: 12,
@@ -110,7 +141,7 @@ const nominations = [
     description: "Small but mighty — don't underestimate the short stack!",
     funnyDescription:
       "Proof that greatness comes in small packages! These compact geniuses pack more talent per inch than anyone else in the department.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/12.jpg",
   },
   {
     id: 13,
@@ -119,7 +150,7 @@ const nominations = [
     description: "Heads in the clouds, feet on the ground.",
     funnyDescription:
       "These towering figures don't just stand out in a crowd - they can see over it! Always willing to help get things from high shelves.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/13.jpg",
   },
   {
     id: 14,
@@ -128,7 +159,7 @@ const nominations = [
     description: "So thin, you could almost see right through 'em!",
     funnyDescription:
       "These two could hide behind a flagpole! They've mastered the art of slipping through crowds and fitting into the smallest coding spaces.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/14.jpg",
   },
   {
     id: 15,
@@ -137,7 +168,7 @@ const nominations = [
     description: "Soft, lovable, and proud of their fluff!",
     funnyDescription:
       "The department's official teddy bears! Their hugs are legendary and have been scientifically proven to reduce stress during exam season.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/15.jpg",
   },
   {
     id: 16,
@@ -146,7 +177,7 @@ const nominations = [
     description: "Singing in the shower, in the lab, in class, on the road...",
     funnyDescription:
       "Our walking karaoke machine! Can turn any situation into a musical and knows the lyrics to literally every song ever created.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/16.jpg",
   },
   {
     id: 17,
@@ -155,7 +186,7 @@ const nominations = [
     description: "Guaranteed to crack you up (or at least try)!",
     funnyDescription:
       "These two could make a compiler error sound hilarious! Their jokes have gotten us through the toughest debugging sessions and longest lectures.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/17.jpg",
   },
   {
     id: 18,
@@ -164,7 +195,7 @@ const nominations = [
     description: "Lifting weights and spirits with equal passion.",
     funnyDescription:
       "Rumor has it their biceps have their own GitHub repositories! Can debug code and do push-ups simultaneously.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/18.jpg",
   },
   {
     id: 19,
@@ -173,7 +204,7 @@ const nominations = [
     description: "Bringing moves that make even chairs wanna groove!",
     funnyDescription:
       "These dancing machines turn every department event into a dance-off! Their victory dances after successful code compilation are legendary.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/19.jpg",
   },
   {
     id: 20,
@@ -182,12 +213,37 @@ const nominations = [
     description: "The mastermind behind the magic and mayhem.",
     funnyDescription:
       "The glue that holds our chaotic batch together! Has somehow managed to organize events despite our collective inability to respond to messages on time.",
-    image: "/placeholder.svg?height=300&width=400",
+    image: "/images/funaward/20.jpg",
   },
 ]
 
 export function NominationsPage() {
+  const [selectedImage, setSelectedImage] = useState<{src: string; alt: string} | null>(null)
+
+  const handleImageClick = (src: string, alt: string) => {
+    setSelectedImage({ src, alt })
+  }
+
+  const closeModal = () => {
+    setSelectedImage(null)
+  }
+
+  // Close modal when clicking outside the image
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      closeModal()
+    }
+  }
+
   return (
+    <>
+      {selectedImage && (
+        <ImageModal 
+          src={selectedImage.src} 
+          alt={selectedImage.alt} 
+          onClose={closeModal} 
+        />
+      )}
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -236,13 +292,19 @@ export function NominationsPage() {
               key={nomination.id}
               className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white border-2 hover:border-blue-300 overflow-hidden"
             >
-              <div className="relative h-48 overflow-hidden">
-                <Image
-                  src={nomination.image || "/placeholder.svg"}
-                  alt={nomination.title}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-300"
-                />
+              <div 
+                className="relative h-64 overflow-hidden cursor-pointer bg-gray-100 flex items-center justify-center"
+                onClick={() => handleImageClick(nomination.image, nomination.title)}
+              >
+                <div className="relative w-full h-full">
+                  <Image
+                    src={nomination.image || "/placeholder.svg"}
+                    alt={nomination.title}
+                    fill
+                    className="object-contain p-2 transition-all duration-300 hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
                 <div className="absolute top-4 left-4">
                   <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl">
                     {nomination.id}
@@ -298,5 +360,6 @@ export function NominationsPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

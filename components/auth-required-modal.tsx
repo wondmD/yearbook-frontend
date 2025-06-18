@@ -6,11 +6,23 @@ import { X, Shield, LogIn } from "lucide-react"
 import { signIn } from "next-auth/react"
 
 interface AuthRequiredModalProps {
+  isOpen: boolean
   onClose: () => void
-  action: string
+  onSignIn: () => void
+  title?: string
+  message?: string
+  action?: string
 }
 
-export function AuthRequiredModal({ onClose, action }: AuthRequiredModalProps) {
+export function AuthRequiredModal({ 
+  isOpen, 
+  onClose, 
+  onSignIn,
+  title = "Authentication Required",
+  message,
+  action = "access this content"
+}: AuthRequiredModalProps) {
+  if (!isOpen) return null
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white shadow-2xl">
@@ -33,10 +45,13 @@ export function AuthRequiredModal({ onClose, action }: AuthRequiredModalProps) {
           </div>
 
           <div className="space-y-3">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => signIn()}>
-              <LogIn className="h-4 w-4 mr-2" />
-              Sign In to Continue
-            </Button>
+            <Button 
+            className="w-full bg-blue-600 hover:bg-blue-700" 
+            onClick={onSignIn}
+          >
+            <LogIn className="h-4 w-4 mr-2" />
+            Sign In to Continue
+          </Button>
 
             <Button variant="outline" className="w-full" onClick={() => signIn("google")}>
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">

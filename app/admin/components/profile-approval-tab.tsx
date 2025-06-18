@@ -47,19 +47,122 @@ export function ProfileApprovalTab() {
   const fetchPendingProfiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch(getApiUrl('admin/profiles/pending'), {
+      const baseUrl = 'https://yearbook.ethioace.com';
+      // Use auth prefix to match backend route
+      const apiUrl = `${baseUrl}/api/auth/admin/profiles/pending/`;
+      console.log('[ProfileApprovalTab] Fetching pending profiles from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${session?.accessToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        credentials: 'include',
       });
       
+      console.log('[ProfileApprovalTab] Response status:', response.status, response.statusText);
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch pending profiles');
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          console.error('[ProfileApprovalTab] Error response:', errorData);
+          errorMessage = errorData.detail || errorData.message || JSON.stringify(errorData);
+        } catch (e) {
+          console.error('[ProfileApprovalTab] Failed to parse error response:', e);
+        }
+        throw new Error(`Failed to fetch pending profiles: ${errorMessage}`);
       }
       
-      const data = await response.json();
-      setProfiles(data);
+      const responseData = await response.json();
+      console.log('[ProfileApprovalTab] Raw API response:', responseData);
+      
+      // DEBUG: Log the exact structure of the response
+      console.log('[DEBUG] Response data type:', typeof responseData);
+      console.log('[DEBUG] Response keys:', Object.keys(responseData));
+      
+      // Handle different response formats
+      let allProfiles = [];
+      
+      if (Array.isArray(responseData)) {
+        console.log('[DEBUG] Response is an array');
+        allProfiles = responseData;
+      } else if (responseData && typeof responseData === 'object') {
+        console.log('[DEBUG] Response is an object');
+        
+        // Check for common response structures
+        if (Array.isArray(responseData.results)) {
+          console.log('[DEBUG] Found results array with length:', responseData.results.length);
+          allProfiles = responseData.results;
+        } else if (Array.isArray(responseData.profiles)) {
+          console.log('[DEBUG] Found profiles array with length:', responseData.profiles.length);
+          allProfiles = responseData.profiles;
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          console.log('[DEBUG] Found data array with length:', responseData.data.length);
+          allProfiles = responseData.data;
+        } else {
+          // Try to find any array in the response
+          const arrayKeys = Object.keys(responseData).filter(key => Array.isArray(responseData[key]));
+          console.log('[DEBUG] Array keys in response:', arrayKeys);
+          
+          if (arrayKeys.length > 0) {
+            allProfiles = responseData[arrayKeys[0]];
+            console.log(`[DEBUG] Using array from key '${arrayKeys[0]}' with length:`, allProfiles.length);
+          }
+        }
+      }
+      
+      console.log(`[ProfileApprovalTab] Extracted ${allProfiles.length} profiles from response`);
+      
+      if (allProfiles.length === 0) {
+        console.warn('[ProfileApprovalTab] No profiles found in the response');
+        console.log('[ProfileApprovalTab] Full response structure:', JSON.stringify(responseData, null, 2));
+        
+        // Try to find any objects that might be profiles
+        const potentialProfiles = [];
+        function findPotentialProfiles(obj, path = '') {
+          if (!obj || typeof obj !== 'object') return;
+          
+          // If this looks like a profile object
+          if (obj.user && obj.user.id) {
+            potentialProfiles.push({ path, data: obj });
+          }
+          
+          // Recursively search through the object
+          for (const key in obj) {
+            if (typeof obj[key] === 'object' && obj[key] !== null) {
+              findPotentialProfiles(obj[key], path ? `${path}.${key}` : key);
+            }
+          }
+        }
+        
+        findPotentialProfiles(responseData);
+        console.log('[DEBUG] Potential profiles found:', potentialProfiles);
+        
+        if (potentialProfiles.length > 0) {
+          console.log('[DEBUG] Found potential profiles at these paths:');
+          potentialProfiles.forEach(({ path }, index) => {
+            console.log(`[${index + 1}] ${path}`);
+          });
+          
+          // Use the first potential profile path if found
+          const path = potentialProfiles[0].path.split('.');
+          let profiles = responseData;
+          for (const key of path) {
+            profiles = profiles[key];
+          }
+          allProfiles = Array.isArray(profiles) ? profiles : [profiles];
+          console.log(`[DEBUG] Using profiles from path '${potentialProfiles[0].path}':`, allProfiles);
+        }
+      }
+      
+      // TEMPORARY: Disable filtering for debugging
+      console.log('[DEBUG] Bypassing profile filtering for debugging');
+      const validProfiles = [...allProfiles];
+      
+      console.log(`[ProfileApprovalTab] Displaying ${validProfiles.length} profiles (filtering disabled for debugging)`);
+      setProfiles(validProfiles);
     } catch (error) {
       console.error('Error fetching pending profiles:', error);
       toast.error('Failed to load pending profiles');
@@ -72,7 +175,8 @@ export function ProfileApprovalTab() {
     try {
       setApproving(prev => ({ ...prev, [profileId]: true }));
       
-      const response = await fetch(getApiUrl(`admin/profiles/${profileId}/approve`), {
+      // Use auth prefix to match backend route
+      const response = await fetch(getApiUrl(`auth/admin/profiles/${profileId}/approve`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +204,8 @@ export function ProfileApprovalTab() {
     try {
       setRejecting(prev => ({ ...prev, [profileId]: true }));
       
-      const response = await fetch(getApiUrl(`admin/profiles/${profileId}/reject`), {
+      // Use auth prefix to match backend route
+      const response = await fetch(getApiUrl(`auth/admin/profiles/${profileId}/reject`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

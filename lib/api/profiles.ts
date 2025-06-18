@@ -58,8 +58,7 @@ export const fetchProfiles = async (searchQuery = ''): Promise<Profile[]> => {
   try {
     const session = await getSession();
     // Use the correct endpoint path with 'auth' prefix
-    const baseUrl = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000');
-    baseUrl.pathname = '/api/auth/profiles/';
+    const baseUrl = 'https://yearbook.ethioace.com/api/auth/profiles/';
     
     if (searchQuery) {
       baseUrl.searchParams.append('search', searchQuery);
@@ -195,8 +194,8 @@ export const uploadProfileImage = async (file: File): Promise<{ url: string } | 
     const formData = new FormData();
     formData.append('image', file);
 
-    // Make sure we don't duplicate 'auth' in the URL
-    const response = await fetch(getApiUrl('users/profile/image/'), {
+    // Use the full URL with /auth/ prefix
+    const response = await fetch(`https://yearbook.ethioace.com/api/auth/users/profile/image/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${session.accessToken}`,
@@ -299,7 +298,7 @@ export const createOrUpdateProfile = async (profileData: ProfileFormData): Promi
     }
   };
 
-  const response = await fetch(getApiUrl('users/me/'), {
+  const response = await fetch(`https://yearbook.ethioace.com/api/auth/users/me/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -323,7 +322,7 @@ export const fetchMyProfile = async (): Promise<Profile | null> => {
   }
 
   try {
-    const response = await fetch(getApiUrl('users/me/'), {
+    const response = await fetch(`https://yearbook.ethioace.com/api/auth/users/me/`, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.accessToken}`,

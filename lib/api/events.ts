@@ -1,6 +1,6 @@
 import { getSession } from 'next-auth/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = 'https://yearbook.ethioace.com';
 
 export interface EventPhoto {
   id: number;
