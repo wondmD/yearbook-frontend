@@ -259,7 +259,7 @@ export function NominationsPage() {
             <p className="text-xl text-gray-800 max-w-4xl mx-auto leading-relaxed">
               🏆 <strong>Welcome to the most prestigious awards ceremony in CSE history!</strong> 🏆
               <br />
-              After 4 years of careful observation, extensive research, and a lot of laughs, we present the official
+              After 5 years of careful observation, extensive research, and a lot of laughs, we present the official
               (totally unofficial) awards for our amazing batch! These categories were scientifically determined by a
               panel of experts (us) and are 100% accurate (maybe). Drumroll please... 🥁
             </p>
