@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
+import Link from "next/link"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { GraduationCap, ArrowRight, Users, Calendar, Camera, Heart, Star, Code, Trophy, Video, Volume2, VolumeX } from "lucide-react"
 import { useSession } from "next-auth/react"
@@ -28,7 +29,7 @@ const VideoPlayer = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -117,7 +118,7 @@ const VideoPlayer = () => {
         ref={videoRef}
         autoPlay 
         loop 
-        muted
+        muted={isMuted}
         playsInline
         className="w-full h-auto relative z-10"
         onCanPlay={handleVideoCanPlay}
@@ -500,70 +501,65 @@ export default function HomePage() {
             <TypingAnimation text="Explore Our Digital Yearbook" speed={80} />
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <Card
-              className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:rotate-1"
-              onClick={() => setCurrentPage("classmates")}
-            >
-              <CardContent className="p-6 text-center">
-                <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-spin">
-                  <Users className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800">Our Squad</h3>
-                <p className="text-gray-600">Meet the legends of CSE 2025</p>
-              </CardContent>
-            </Card>
+            <Link href="/classmates" className="block">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:rotate-1">
+                <CardContent className="p-6 text-center">
+                  <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-spin">
+                    <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800">Our Squad</h3>
+                  <p className="text-gray-600">Meet the legends of CSE 2025</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card
-              className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:-rotate-1"
-              onClick={() => setCurrentPage("events")}
-            >
-              <CardContent className="p-6 text-center">
-                <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-bounce">
-                  <Calendar className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800">Epic Events</h3>
-                <p className="text-gray-600">Relive our amazing moments</p>
-              </CardContent>
-            </Card>
+            <Link href="/events" className="block">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:-rotate-1">
+                <CardContent className="p-6 text-center">
+                  <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-bounce">
+                    <Calendar className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800">Epic Events</h3>
+                  <p className="text-gray-600">Relive our amazing moments</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card
-              className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:rotate-1"
-              onClick={() => setCurrentPage("memories")}
-            >
-              <CardContent className="p-6 text-center">
-                <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-pulse">
-                  <Heart className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800">Memories</h3>
-                <p className="text-gray-600">Photos with stories</p>
-              </CardContent>
-            </Card>
+            <Link href="/memories" className="block">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:rotate-1">
+                <CardContent className="p-6 text-center">
+                  <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-pulse">
+                    <Heart className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800">Memories</h3>
+                  <p className="text-gray-600">Photos with stories</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card
-              className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:-rotate-1"
-              onClick={() => setCurrentPage("nominations")}
-            >
-              <CardContent className="p-6 text-center">
-                <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-spin">
-                  <Trophy className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800">Fun Awards</h3>
-                <p className="text-gray-600">Hilarious nominations</p>
-              </CardContent>
-            </Card>
+            <Link href="/nominations" className="block">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:-rotate-1">
+                <CardContent className="p-6 text-center">
+                  <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-spin">
+                    <Trophy className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800">Fun Awards</h3>
+                  <p className="text-gray-600">Hilarious nominations</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card
-              className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:rotate-1"
-              onClick={() => setCurrentPage("projects")}
-            >
-              <CardContent className="p-6 text-center">
-                <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-bounce">
-                  <Code className="h-8 w-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-800">GC Projects</h3>
-                <p className="text-gray-600">Showcase our work</p>
-              </CardContent>
-            </Card>
+            <Link href="/projects" className="block">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-blue-300 hover:rotate-1">
+                <CardContent className="p-6 text-center">
+                  <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors group-hover:animate-bounce">
+                    <Code className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800">GC Projects</h3>
+                  <p className="text-gray-600">Showcase our work</p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>
